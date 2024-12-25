@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html data-theme="light">
+<head>
+    <title>ESG Analytics Dashboard</title>
+    <!-- Required Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <style>
+        :root[data-theme="light"] {
+            --bg-color: #f5f5f5;
+            --text-color: #333;
+            --card-bg: #ffffff;
+            --border-color: #ddd;
+            --shadow-color: rgba(0,0,0,0.1);
+            --chart-grid: rgba(0,0,0,0.1);
+        }
+
+        :root[data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --text-color: #ffffff;
+            --card-bg: #2d2d2d;
+            --border-color: #404040;
+            --shadow-color: rgba(0,0,0,0.3);
+            --chart-grid: rgba(255,255,255,0.1);
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .dashboard-card {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px var(--shadow-color);
+            transition: background-color 0.3s;
+        }
+
+        .full-width {
+            grid-column: span 2;
+        }
+
+        .chart-container {
+            height: 400px;
+            position: relative;
+            margin-top: 20px;
+        }
+
+        h2 {
+            margin-top: 0;
+            color: var(--text-color);
+            font-size: 1.5em;
+        }
+
+        .section-title {
+            text-align: center;
+            color: var(--text-color);
+            margin: 40px 0 20px;
+            font-size: 1.8em;
+            grid-column: span 2;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .theme-toggle button {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            cursor: pointer;
+            box-shadow: 0 2px 4px var(--shadow-color);
+            font-size: 20px;
+            transition: transform 0.3s;
+        }
+
+        .theme-toggle button:hover {
+            transform: scale(1.1);
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            .full-width {
+                grid-column: span 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    {% include 'navbar.html' %}
+
+    <div class="dashboard-grid">
+        <!-- Location-based Analysis -->
+        <div class="section-title">Location-based Analysis</div>
+        
+        <div class="dashboard-card full-width">
+            <h2>ESG Scores by Location</h2>
+            <div class="chart-container">
+                <canvas id="locationScores"></canvas>
+            </div>
+        </div>
+
+        <div class="dashboard-card">
+            <h2>Company Rating Distribution</h2>
+            <div class="chart-container">
+                <canvas id="ratingDistribution"></canvas>
+            </div>
+        </div>
+
+        <div class="dashboard-card">
+            <h2>ESG Components by Location</h2>
+            <div class="chart-container">
+                <canvas id="componentsRadar"></canvas>
+            </div>
+        </div>
+
+        <!-- Company Performance -->
+        <div class="section-title">Company Performance</div>
+
+        <div class="dashboard-card">
+            <h2>Company Carbon Footprint</h2>
+            <div class="chart-container">
+                <canvas id="carbonFootprint"></canvas>
+            </div>
+        </div>
+
+        <!-- Trends Analysis -->
+        <div class="section-title">Trends Analysis</div>
+
+        <div class="dashboard-card">
+            <h2>Compliance Trends Over Time</h2>
+            <div class="chart-container">
+                <canvas id="complianceTrends"></canvas>
+            </div>
+        </div>
+
+        <div class="dashboard-card">
+            <h2>ESG Score Trends</h2>
+            <div class="chart-container">
+                <canvas id="scoreTrends"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Theme Toggle Button -->
+    <div class="theme-toggle">
+        <button onclick="toggleTheme()" id="themeButton">🌓</button>
+    </div>
+    <script>
+        Chart.register(ChartDataLabels);
+        const chartData = {{ chart_data|tojson|safe }};
+        let charts = {};
+Chart.register(ChartDataLabels);
+
+function generateDynamicColors(count) {
+    const baseColors = [
+        '#36A2EB', '#FF6384', '#4BC0C0', '#FFB74D', '#9966FF',
+        '#FF9F40', '#32CD32', '#BA55D3', '#20B2AA', '#FF69B4'
+    ];
+    return baseColors.slice(0, count);
+}
+
+function getChartColors() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    return {
+        text: isDark ? '#ffffff' : '#333333',
+        grid: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+    };
+}
+
+function initializeCharts() {
+    const colors = getChartColors();
+    const dynamicColors = generateDynamicColors(chartData.locations.length);
+
+    // Rating Distribution Chart
+    const ctxRating = document.getElementById('ratingDistribution');
+    if (ctxRating && charts.ratingDistribution) charts.ratingDistribution.destroy();
+    if (ctxRating) {
+        const ratingData = {};
+        chartData.raw_data.forEach(record => {
+            ratingData[record.esg_rating] = (ratingData[record.esg_rating] || 0) + 1;
+        });
+
+        charts.ratingDistribution = new Chart(ctxRating, {
+            type: 'pie',
+            data: {
+                labels: Object.keys(ratingData),
+                datasets: [{
+                    data: Object.values(ratingData),
+                    backgroundColor: dynamicColors
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: { color: colors.text }
+                    },
+                    datalabels: {
+                        color: 'white',
+                        formatter: (value, ctx) => {
+                            const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                            return Math.round((value / total) * 100) + '%';
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // ESG Components by Location (Radar Chart)
+    const ctxRadar = document.getElementById('componentsRadar');
+    if (ctxRadar && charts.componentsRadar) charts.componentsRadar.destroy();
+    if (ctxRadar) {
+        const components = ['carbon_emissions', 'diversity', 'safety', 'compliance', 'energy_efficiency'];
+        const datasets = chartData.locations.map((location, index) => {
+            const locationData = chartData.raw_data.filter(r => r.location === location);
+            const averages = components.reduce((acc, comp) => {
+                acc[comp] = locationData.reduce((sum, r) => sum + parseFloat(r[comp]), 0) / locationData.length;
+                return acc;
+            }, {});
+
+            return {
+                label: location,
+                data: Object.values(averages),
+                backgroundColor: dynamicColors[index] + '40',
+                borderColor: dynamicColors[index],
+                borderWidth: 2
+            };
+        });
+
+        charts.componentsRadar = new Chart(ctxRadar, {
+            type: 'radar',
+            data: {
+                labels: components.map(comp => comp.replace('_', ' ').toUpperCase()),
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        grid: { color: colors.grid },
+                        pointLabels: { color: colors.text }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: { color: colors.text }
+                    }
+                }
+            }
+        });
+    }
+
+    // Location Scores Chart
+    const ctxLocation = document.getElementById('locationScores');
+    if (ctxLocation && charts.locationScores) charts.locationScores.destroy();
+    if (ctxLocation) {
+        charts.locationScores = new Chart(ctxLocation, {
+            type: 'bar',
+            data: {
+                labels: chartData.locations,
+                datasets: [{
+                    label: 'ESG Score',
+                    data: chartData.location_scores,
+                    backgroundColor: dynamicColors
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: colors.grid },
+                        ticks: { color: colors.text }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: colors.text }
+                    }
+                }
+            }
+        });
+    }
+
+    // Carbon Footprint Chart
+    const ctxCarbon = document.getElementById('carbonFootprint');
+    if (ctxCarbon && charts.carbonFootprint) charts.carbonFootprint.destroy();
+    if (ctxCarbon) {
+        const carbonData = {};
+        chartData.raw_data.forEach(record => {
+            const company = record.company;
+            if (!carbonData[company]) {
+                carbonData[company] = 0;
+            }
+            carbonData[company] += parseFloat(record.carbon_emissions);
+        });
+
+        charts.carbonFootprint = new Chart(ctxCarbon, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(carbonData),
+                datasets: [{
+                    data: Object.values(carbonData),
+                    backgroundColor: dynamicColors
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: { color: colors.text }
+                    },
+                    datalabels: {
+                        color: 'white',
+                        formatter: (value, ctx) => {
+                            const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                            return Math.round((value / total) * 100) + '%';
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Compliance Trends Chart
+    const ctxCompliance = document.getElementById('complianceTrends');
+    if (ctxCompliance && charts.complianceTrends) charts.complianceTrends.destroy();
+    if (ctxCompliance) {
+        const complianceData = chartData.timestamps.map(timestamp => {
+            const timeRecords = chartData.raw_data.filter(r => r.timestamp === timestamp);
+            return {
+                timestamp,
+                compliance: timeRecords.reduce((sum, r) => sum + parseFloat(r.compliance), 0) / timeRecords.length
+            };
+        });
+
+        charts.complianceTrends = new Chart(ctxCompliance, {
+            type: 'line',
+            data: {
+                labels: complianceData.map(d => d.timestamp),
+                datasets: [{
+                    label: 'Average Compliance Rate',
+                    data: complianceData.map(d => d.compliance),
+                    borderColor: dynamicColors[0],
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: colors.grid },
+                        ticks: { color: colors.text }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: colors.text }
+                    }
+                }
+            }
+        });
+    }
+
+    // ESG Score Trends
+    const ctxScores = document.getElementById('scoreTrends');
+    if (ctxScores && charts.scoreTrends) charts.scoreTrends.destroy();
+    if (ctxScores) {
+        const datasets = chartData.locations.map((location, index) => ({
+            label: location,
+            data: chartData.timestamps.map(timestamp => {
+                const records = chartData.raw_data.filter(r => 
+                    r.location === location && r.timestamp === timestamp
+                );
+                return records.reduce((sum, r) => sum + parseFloat(r.esg_score), 0) / records.length;
+            }),
+            borderColor: dynamicColors[index],
+            tension: 0.4
+        }));
+
+        charts.scoreTrends = new Chart(ctxScores, {
+            type: 'line',
+            data: { 
+                labels: chartData.timestamps,
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        grid: { color: colors.grid },
+                        ticks: { color: colors.text }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: colors.text }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: { color: colors.text }
+                    }
+                }
+            }
+        });
+    }
+}
+
+// Theme toggle functionality
+function toggleTheme() {
+    const html = document.documentElement;
+    const currentTheme = html.getAttribute('data-theme');
+    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+    html.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    initializeCharts();
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    initializeCharts();
+});
+    </script>
+</body>
+</html>

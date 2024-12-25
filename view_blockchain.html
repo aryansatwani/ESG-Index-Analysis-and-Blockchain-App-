@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Blockchain Records</title>
+    <link rel="stylesheet" href="/static/style_blockchain.css">
+</head>
+<body>
+    <h1>Blockchain Records</h1>
+    <ul>
+        {% for block in chain %}
+        <li>
+            <strong>Block {{ block.index }}:</strong> {{ block }}
+        </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>

@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html data-theme="light">
+<head>
+    <title>Blockchain ESG Records</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root[data-theme="light"] {
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --header-bg: #007bff;
+            --card-bg: #ffffff;
+            --border-color: #ddd;
+            --table-header-bg: #007bff;
+            --table-header-text: #ffffff;
+            --table-row-hover: #f5f5f5;
+        }
+
+        :root[data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --text-color: #ffffff;
+            --header-bg: #0056b3;
+            --card-bg: #2d2d2d;
+            --border-color: #404040;
+            --table-header-bg: #0056b3;
+            --table-header-text: #ffffff;
+            --table-row-hover: #333333;
+        }
+
+        /* ESG Rating Styles */
+        .rating-cell {
+            text-align: center;
+            padding: 6px 12px !important;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .rating-AAA {
+            background-color: #1a9850;
+            color: white;
+        }
+
+        .rating-AA {
+            background-color: #66bd63;
+            color: white;
+        }
+
+        .rating-A {
+            background-color: #a6d96a;
+            color: black;
+        }
+
+        .rating-BBB {
+            background-color: #fee08b;
+            color: black;
+        }
+
+        .rating-BB {
+            background-color: #fdae61;
+            color: black;
+        }
+
+        .rating-B {
+            background-color: #f46d43;
+            color: white;
+        }
+
+        .rating-CCC {
+            background-color: #d73027;
+            color: white;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .theme-switch {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+
+        .theme-switch:hover {
+            opacity: 1;
+        }
+
+        .theme-switch button {
+            padding: 12px;
+            border-radius: 50%;
+            border: none;
+            background-color: var(--header-bg);
+            color: white;
+            cursor: pointer;
+            width: 45px;
+            height: 45px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .theme-switch button:hover {
+            transform: scale(1.1);
+            transition: transform 0.3s ease;
+        }
+
+        /* Responsive container */
+        .container {
+            width: 100%;
+            padding: 0 15px;
+            margin: 0 auto;
+        }
+
+        @media (min-width: 768px) {
+            .container {
+                padding: 0 30px;
+            }
+        }
+
+        /* Form styling */
+        .search-form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 20px 0;
+            background-color: var(--card-bg);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .form-group {
+            flex: 1 1 250px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--text-color);
+        }
+
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        /* Button group */
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .btn {
+            padding: 8px 20px;
+            border-radius: 4px;
+            border: none;
+            background-color: #28a745;
+            color: white;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Table styling */
+        .table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+
+        th {
+            background-color: var(--table-header-bg);
+            color: var(--table-header-text);
+            padding: 12px 8px;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        td {
+            padding: 12px 8px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 14px;
+        }
+
+        tr:hover {
+            background-color: var(--table-row-hover);
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+            .search-form {
+                flex-direction: column;
+            }
+
+            .form-group {
+                flex: 1 1 100%;
+            }
+
+            .button-group {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .btn {
+                width: 100%;
+                text-align: center;
+            }
+
+            .table-container {
+                margin: 10px -15px;
+                border-radius: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Dark mode toggle -->
+    <div class="theme-switch">
+        <button onclick="toggleTheme()">
+            <span id="theme-icon">🌙</span>
+        </button>
+    </div>
+
+    {% include 'navbar.html' %}
+    
+    <div class="container">
+        <h1 style="text-align: center; margin: 20px 0;">Blockchain ESG Records</h1>
+        
+        <!-- Action Buttons -->
+        <div style="text-align: center; margin-bottom: 20px;">
+            <a href="{{ url_for('add_data') }}" class="btn">Add New Entry</a>
+            <a href="{{ url_for('dashboard') }}" class="btn" style="margin-left: 10px; background-color: #0056b3;">ESG Analytics Dashboard</a>
+            <a href="{{ url_for('predictions') }}" class="btn" style="margin-left: 10px; background-color: #6f42c1;">AI Predictions</a>
+        </div>
+
+        <!-- Search Form -->
+        <form method="GET" action="{{ url_for('index') }}" class="search-form">
+            <div class="form-group">
+                <label>Company Name:</label>
+                <input type="text" name="company" placeholder="Enter company name" 
+                       value="{{ request.args.get('company', '') }}">
+            </div>
+            
+            <div class="form-group">
+                <label>Location:</label>
+                <input type="text" name="location" placeholder="Enter location" 
+                       value="{{ request.args.get('location', '') }}">
+            </div>
+
+            <div class="form-group">
+                <label>ESG Rating:</label>
+                <select name="rating">
+                    <option value="">All Ratings</option>
+                    <option value="AAA" {% if request.args.get('rating') == 'AAA' %}selected{% endif %}>AAA</option>
+                    <option value="AA" {% if request.args.get('rating') == 'AA' %}selected{% endif %}>AA</option>
+                    <option value="A" {% if request.args.get('rating') == 'A' %}selected{% endif %}>A</option>
+                    <option value="BBB" {% if request.args.get('rating') == 'BBB' %}selected{% endif %}>BBB</option>
+                    <option value="BB" {% if request.args.get('rating') == 'BB' %}selected{% endif %}>BB</option>
+                    <option value="B" {% if request.args.get('rating') == 'B' %}selected{% endif %}>B</option>
+                    <option value="CCC" {% if request.args.get('rating') == 'CCC' %}selected{% endif %}>CCC</option>
+                </select>
+            </div>
+
+            <div class="button-group">
+                <button type="submit" class="btn">Search</button>
+                <a href="{{ url_for('index') }}" class="btn">Reset</a>
+                <a href="{{ url_for('export_csv') }}" class="btn">Export to CSV</a>
+                <a href="{{ url_for('export_excel') }}" class="btn">Export to Excel</a>
+            </div>
+        </form>
+
+        <!-- Table -->
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Index</th>
+                        <th>Timestamp</th>
+                        <th>Company</th>
+                        <th>Location</th>
+                        <th>Carbon Emissions</th>
+                        <th>Diversity</th>
+                        <th>Safety</th>
+                        <th>Compliance</th>
+                        <th>Energy Efficiency</th>
+                        <th>ESG Score</th>
+                        <th>ESG Rating</th>
+                        <th>Added By</th>
+                        <th>Mining Time</th>
+                        <th>Difficulty</th>
+                        <th>PoW Hash</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for block in records.items %}
+                    {% for record in block['data'] %}
+                    <tr>
+                        <td>{{ block['index'] }}</td>
+                        <td>{{ block['timestamp'] }}</td>
+                        <td>{{ record['company'] }}</td>
+                        <td>{{ record['location'] }}</td>
+                        <td>{{ record['carbon_emissions'] }}</td>
+                        <td>{{ record['diversity'] }}</td>
+                        <td>{{ record['safety'] }}</td>
+                        <td>{{ record['compliance'] }}</td>
+                        <td>{{ record['energy_efficiency'] }}</td>
+                        <td>{{ record.get('esg_score', '') }}</td>
+                        <td><div class="rating-cell rating-{{ record.get('esg_rating', '') }}">{{ record.get('esg_rating', '') }}</div></td>
+                        <td>{{ record.get('user', '') }}</td>
+                        <td>{{ block.get('mining_time', '') }}</td>
+                        <td>{{ block['difficulty'] }}</td>
+                        <td style="font-family: monospace; font-size: 12px;">{{ block['pow_hash'][:15] }}...</td>
+                    </tr>
+                    {% endfor %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        <div style="text-align: center; margin: 20px 0;">
+            {% if records.has_prev %}
+                <a href="{{ url_for('index', page=records.prev_num, **request.args) }}" class="btn">&laquo; Previous</a>
+            {% endif %}
+            
+            <span style="margin: 0 10px;">Page {{ records.page }} of {{ records.pages }}</span>
+            
+            {% if records.has_next %}
+                <a href="{{ url_for('index', page=records.next_num, **request.args) }}" class="btn">Next &raquo;</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            const icon = document.getElementById('theme-icon');
+            const currentTheme = html.getAttribute('data-theme');
+            
+            if (currentTheme === 'light') {
+                html.setAttribute('data-theme', 'dark');
+                icon.textContent = '☀️';
+                localStorage.setItem('theme', 'dark');
+            } else {
+                html.setAttribute('data-theme', 'light');
+                icon.textContent = '🌙';
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        // Check for saved theme preference
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            const icon = document.getElementById('theme-icon');
+            
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            icon.textContent = savedTheme === 'light' ? '🌙' : '☀️';
+        });
+    </script>
+</body>
+</html>

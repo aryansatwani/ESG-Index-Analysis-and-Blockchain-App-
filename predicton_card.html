@@ -1,0 +1,77 @@
+<!-- prediction_card.html -->
+<div class="metric-card">
+    <div class="metric-header">
+        <h2>{{ metric|replace('_', ' ')|title }}</h2>
+        <span class="trend-badge {% if values.trend == 'Improving' %}improving{% else %}declining{% endif %}">
+            {{ values.trend }} ({{ values.change_percent|abs|round(1) }}%)
+        </span>
+    </div>
+
+    <div class="metric-values">
+        <div class="value-box">
+            <div class="value-label">Current Value</div>
+            <div class="value">{{ values.current_value }}</div>
+        </div>
+        <div class="value-box">
+            <div class="value-label">Predicted (2025-06-23)</div>
+            <div class="value">{{ values.forecasted_values[-1]|round(2) }}</div>
+            <div class="range">
+                Range: {{ values.confidence_intervals.lower[-1]|round(2) }} - {{ values.confidence_intervals.upper[-1]|round(2) }}
+            </div>
+        </div>
+    </div>
+
+    <div class="chart-container">
+        <canvas id="chart_{{ metric }}"></canvas>
+    </div>
+
+    <script>
+        new Chart(document.getElementById('chart_{{ metric }}').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: ['Past', 'Present', 'Future'],
+                datasets: [{
+                    data: [
+                        values.current_value * 0.9,
+                        values.current_value,
+                        values.forecasted_values[values.forecasted_values.length - 1]
+                    ],
+                    borderColor: values.trend === 'Improving' ? '#28a745' : '#dc3545',
+                    backgroundColor: values.trend === 'Improving' ? 'rgba(40, 167, 69, 0.1)' : 'rgba(220, 53, 69, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 5,
+                    pointBackgroundColor: values.trend === 'Improving' ? '#28a745' : '#dc3545'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        grid: {
+                            color: 'rgba(0,0,0,0.05)'
+                        },
+                        ticks: {
+                            padding: 10
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                animation: {
+                    duration: 1000
+                }
+            }
+        });
+    </script>
+</div>
